@@ -1,0 +1,761 @@
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{natbib}
+\usepackage{parskip}
+
+% ── Hyperlink styling ────────────────────────────────────────────────
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=blue!70!black,
+}
+
+% ── Page styling ─────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{Predictive Maintenance in Industrial IoT}}
+\fancyhead[R]{\small\textit{Team Aishwaryam}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.5em}{}
+
+% ── Spacing ──────────────────────────────────────────────────────────
+\onehalfspacing
+
+% ── Custom commands ──────────────────────────────────────────────────
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\HI}{\mathrm{HI}}
+\newcommand{\RUL}{\mathrm{RUL}}
+\newcommand{\FHT}{\mathrm{FHT}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\sign}{sign}
+
+% ══════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Title Page ───────────────────────────────────────────────────────
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\LARGE\bfseries Predictive Maintenance in Industrial IoT}\\[0.8cm]
+    {\Large\bfseries A Degradation-Informed Conformal Survival Framework}\\[2cm]
+    
+    {\Large Project Proposal}\\[0.5cm]
+    {\large Minor in Computational Mathematics}\\[0.3cm]
+    {\large Mini Project}\\[3cm]
+    
+    {\Large\bfseries Team Aishwaryam}\\[1cm]
+    
+    \begin{tabular}{l l}
+        \toprule
+        \textbf{Name} & \textbf{Role} \\
+        \midrule
+        Fahim Shafeek   & Team Lead   \\
+        Daison K Daniel & Team Member \\
+        Diya Susan Mathew & Team Member \\
+        \bottomrule
+    \end{tabular}
+    
+    \vfill
+\end{titlepage}
+
+% ── Table of Contents ────────────────────────────────────────────────
+\newpage
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 1 — ABSTRACT
+% ══════════════════════════════════════════════════════════════════════
+\section{Abstract}
+
+The rapid development of the Industrial Internet of Things (IIoT) has enabled the continuous collection of operational data from industrial machinery through interconnected sensors. Traditional maintenance strategies, such as reactive and scheduled preventive maintenance, may result in unexpected equipment failures, unnecessary maintenance activities, increased operational costs, and production downtime. Predictive maintenance provides a data-driven approach for estimating the condition of industrial equipment and identifying potential failures before they occur.
+
+This project proposes a predictive maintenance framework that analyzes multivariate sensor data---including air temperature, process temperature, rotational speed, torque, and tool wear---to estimate the probability of machine failure. Mathematical and statistical techniques such as descriptive statistical analysis, correlation analysis, probability distribution modelling, multivariate regression, and survival analysis are applied to identify relationships between operational parameters and equipment degradation. The Weibull probability distribution is employed to model equipment failure behaviour and estimate equipment reliability over time.
+
+Machine learning algorithms are used to identify complex relationships between sensor measurements and machine conditions. The performance of the developed models will be evaluated using appropriate classification metrics, including precision, recall, F1-score, and the area under the Receiver Operating Characteristic curve. Special consideration will be given to class imbalance because equipment failures occur less frequently than normal operating conditions.
+
+The proposed system aims to provide early warnings of potential equipment failures and support informed maintenance scheduling. By integrating mathematical reliability modelling, statistical analysis, and machine learning with Industrial IoT sensor data, the system seeks to reduce unexpected equipment downtime, improve operational reliability, optimize maintenance activities, and extend the useful life of industrial equipment.
+
+\medskip
+\noindent\textbf{Keywords:} Industrial Internet of Things, Predictive Maintenance, Machine Learning, Weibull Distribution, Survival Analysis, Reliability Modelling, Failure Prediction, Conformal Prediction, Stochastic Degradation.
+
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 2 — INTRODUCTION
+% ══════════════════════════════════════════════════════════════════════
+\section{Introduction}
+
+\subsection{Background and Motivation}
+
+Industrial equipment failure is a significant source of economic loss across manufacturing, energy, and transportation sectors. The global predictive maintenance market is projected to exceed USD~28 billion by 2026, driven by the widespread adoption of Industrial Internet of Things (IIoT) sensor networks. Traditional maintenance strategies fall into two categories:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Reactive Maintenance:} Equipment is repaired only after failure, leading to unplanned downtime, cascading production losses, and safety hazards.
+    \item \textbf{Preventive (Scheduled) Maintenance:} Components are replaced at fixed time intervals regardless of their actual condition, resulting in unnecessary maintenance costs and premature disposal of functional parts.
+\end{itemize}
+
+Predictive maintenance (PdM) offers a third paradigm: maintenance actions are scheduled based on the \textit{actual condition} of equipment as inferred from real-time sensor data. This requires solving a fundamentally mathematical problem---given a time series of multivariate sensor observations $\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_t$, estimate:
+
+\begin{enumerate}
+    \item The current \textbf{health state} of the equipment,
+    \item The \textbf{probability of failure} within a future time horizon, and
+    \item The \textbf{remaining useful life (RUL)} with quantified uncertainty.
+\end{enumerate}
+
+\subsection{Problem Statement}
+
+Given a dataset of multivariate IIoT sensor readings (air temperature, process temperature, rotational speed, torque, tool wear) from industrial milling machines, develop a mathematical framework that:
+
+\begin{enumerate}
+    \item Models equipment degradation as a \textbf{stochastic process} using the Wiener process with covariate-dependent drift,
+    \item Maps degradation states to \textbf{failure probabilities} via Weibull survival analysis,
+    \item Trains \textbf{machine learning classifiers} on physics-derived degradation features for multi-mode failure prediction, and
+    \item Provides \textbf{distribution-free uncertainty quantification} on all predictions using conformal prediction.
+\end{enumerate}
+
+\subsection{Objectives}
+
+\begin{enumerate}
+    \item Perform comprehensive exploratory data analysis (EDA) on the AI4I 2020 Predictive Maintenance Dataset to characterize sensor distributions and failure modes.
+    \item Construct a Wiener process degradation model with sensor-informed drift and diffusion parameters.
+    \item Apply Weibull survival analysis to model time-to-failure distributions and estimate reliability functions.
+    \item Develop machine learning models (Gradient Boosted Trees, Random Forest) augmented with stochastic degradation features for failure classification.
+    \item Implement conformal prediction to generate statistically valid prediction sets with guaranteed coverage.
+    \item Evaluate the integrated framework against standard baselines using precision, recall, F1-score, AUC-ROC, and calibration metrics.
+\end{enumerate}
+
+\subsection{Significance}
+
+This project bridges \textbf{pure mathematics} (stochastic processes, survival theory, distribution-free inference) with \textbf{applied machine learning} for a high-impact industrial application. The integration of Wiener process degradation modeling, Weibull survival analysis, gradient-boosted ML, and conformal prediction into a single unified framework---which we term the \textbf{Degradation-Informed Conformal Survival Framework (DICSF)}---has not been previously demonstrated in the literature. This represents a novel contribution at the intersection of computational mathematics and industrial data science.
+
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 3 — LITERATURE REVIEW
+% ══════════════════════════════════════════════════════════════════════
+\section{Literature Review}
+
+\subsection{Predictive Maintenance: Evolution and Current Landscape}
+
+Predictive maintenance has evolved through several generations. Early approaches relied on \textbf{threshold-based alarms}---simple rules such as ``trigger maintenance if vibration exceeds 10~mm/s.'' The introduction of machine learning enabled \textbf{pattern recognition} in high-dimensional sensor streams \citep{carvalho2019}. Recent surveys (2022--2026) document a paradigm shift toward:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Deep Learning architectures} (CNNs for spatial pattern recognition in sensor data, LSTMs for temporal degradation sequences),
+    \item \textbf{Hybrid physics-ML systems} that embed domain knowledge into data-driven models, and
+    \item \textbf{Uncertainty-aware prediction} using Bayesian methods and conformal inference.
+\end{itemize}
+
+Despite these advances, persistent challenges remain: (i)~extreme class imbalance (failures are rare events), (ii)~lack of rigorous uncertainty quantification in most deployed systems, and (iii)~the gap between mathematically principled degradation models and scalable ML methods.
+
+\subsection{Weibull Distribution and Survival Analysis in Reliability Engineering}
+
+The Weibull distribution has been a cornerstone of reliability engineering since Waloddi Weibull's seminal 1951 paper \citep{weibull1951}. Its probability density function is:
+\begin{equation}\label{eq:weibull-pdf}
+    f(t;\,\beta,\eta) = \frac{\beta}{\eta}\left(\frac{t}{\eta}\right)^{\!\beta-1} \exp\!\left[-\left(\frac{t}{\eta}\right)^{\!\beta}\right], \quad t \geq 0
+\end{equation}
+where $\beta > 0$ is the \textbf{shape parameter} (governing failure rate behavior) and $\eta > 0$ is the \textbf{scale parameter} (characteristic life). The versatility of the Weibull distribution lies in its ability to model:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Decreasing failure rates} ($\beta < 1$): infant mortality / burn-in failures,
+    \item \textbf{Constant failure rates} ($\beta = 1$): random failures (reduces to the exponential distribution),
+    \item \textbf{Increasing failure rates} ($\beta > 1$): wear-out degradation---the regime most relevant to predictive maintenance.
+\end{itemize}
+
+Modern extensions include the \textbf{WTTE-RNN (Weibull Time-to-Event Recurrent Neural Network)}, which uses recurrent neural networks to dynamically estimate $\beta$ and $\eta$ from time-series data, replacing the standard MSE loss with a \textbf{Weibull log-likelihood loss} that natively handles right-censored observations.
+
+\subsection{Stochastic Degradation Processes}
+
+Stochastic process models provide a mathematical framework for describing how equipment health evolves over time:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Wiener Process (Brownian Motion with Drift):} Models non-monotonic degradation with random fluctuations. The degradation signal at time $t$ is $X(t) = \mu t + \sigma B(t)$, where $\mu$ is the drift rate, $\sigma$ is the diffusion coefficient, and $B(t)$ is standard Brownian motion. This is suitable for general wear and fatigue where sensor readings exhibit noise.
+    \item \textbf{Gamma Process:} Models strictly monotonic, irreversible cumulative damage (e.g., corrosion, crack growth). Increments are independent and Gamma-distributed.
+\end{itemize}
+
+The \textbf{Remaining Useful Life (RUL)} under a Wiener process model is computed as the \textbf{First Hitting Time (FHT)}---the first time $T_f$ at which the degradation process $X(t)$ crosses a predefined failure threshold~$\ell$:
+\begin{equation}\label{eq:fht}
+    T_f = \inf\{t > 0 : X(t) \geq \ell\}
+\end{equation}
+
+Under a linear Wiener process, this FHT follows an \textbf{Inverse Gaussian distribution} \citep{si2011,ye2015}:
+\begin{equation}\label{eq:ig-pdf}
+    f_{T_f}(t) = \frac{\ell - X(t_0)}{\sqrt{2\pi\sigma^2 t^3}}\,\exp\!\left[-\frac{(\ell - X(t_0) - \mu t)^2}{2\sigma^2 t}\right]
+\end{equation}
+
+This provides an analytically tractable probability distribution over future failure times.
+
+\subsection{Conformal Prediction}
+
+Conformal prediction (CP), introduced by Vovk, Gammerman, and Shafer \citep{vovk2005}, provides a framework for constructing \textbf{prediction sets} with finite-sample, distribution-free coverage guarantees. Unlike Bayesian credible intervals, which require correct model specification, conformal prediction guarantees:
+\begin{equation}\label{eq:cp-guarantee}
+    \Prob\!\left(Y_{\mathrm{new}} \in C(\mathbf{x}_{\mathrm{new}})\right) \geq 1 - \alpha
+\end{equation}
+for \textit{any} data-generating distribution and \textit{any} scoring function, requiring only the assumption of \textbf{exchangeability} (a weaker condition than i.i.d.).
+
+Applications of CP to predictive maintenance are emerging but sparse \citep{angelopoulos2023}. Recent work explores \textbf{weighted conformal prediction} and \textbf{Adaptive Conformal Inference (ACI)} \citep{gibbs2021} to handle the non-exchangeability inherent in temporal sensor data, where operating conditions shift over time (concept drift).
+
+\subsection{Explainability: SHAP Values for Survival Models}
+
+SHAP (SHapley Additive exPlanations) values \citep{lundberg2017} provide a game-theoretic framework for feature attribution. In survival analysis, applying SHAP requires translating survival curves to point predictions (e.g., expected RUL) before computing feature contributions. This bridges the gap between black-box survival models and actionable maintenance insights, enabling operators to understand \textit{why} a particular machine is predicted to fail.
+
+\subsection{Identified Research Gap}
+
+While pairwise or three-way combinations of the above techniques exist in the literature (e.g., Physics-Informed Neural Networks + Conformal Prediction, or Wiener Process + Weibull + ML), \textbf{no prior work integrates all four components}---(1) stochastic Wiener degradation modeling, (2) Weibull survival analysis, (3) ML with physics-derived features, and (4) conformal prediction for uncertainty quantification---into a single unified framework. This integration addresses complementary gaps: the Wiener process captures stochastic degradation dynamics, the Weibull distribution maps degradation to survival probabilities, ML handles high-dimensional feature extraction, and conformal prediction guarantees statistical validity of uncertainty estimates.
+
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 4 — METHODOLOGY
+% ══════════════════════════════════════════════════════════════════════
+\section{Methodology}
+
+The proposed \textbf{Degradation-Informed Conformal Survival Framework (DICSF)} consists of five integrated mathematical stages, applied sequentially to the AI4I 2020 Predictive Maintenance Dataset.
+
+% ── Stage 1 ──────────────────────────────────────────────────────────
+\subsection{Stage 1: Exploratory Data Analysis and Feature Engineering}
+
+\subsubsection{Dataset Description}
+
+The \textbf{AI4I 2020 Predictive Maintenance Dataset} (UCI Machine Learning Repository) \citep{matzka2020} is a synthetic dataset modeled on real-world industrial conditions. It contains:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{10,000 observations} of a milling machine
+    \item \textbf{14 features} including:
+    \begin{itemize}
+        \item UID (unique identifier), Product ID with quality variants (Low, Medium, High)
+        \item Air temperature [K], Process temperature [K]
+        \item Rotational speed [rpm], Torque [Nm], Tool wear [min]
+        \item Machine failure (binary target)
+        \item 5 failure mode indicators: Tool Wear Failure (TWF), Heat Dissipation Failure (HDF), Power Failure (PWF), Overstrain Failure (OSF), Random Failure (RNF)
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Descriptive Statistical Analysis}
+
+For each continuous feature $X_j$ ($j = 1, \ldots, d$), compute:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Central tendency:} Sample mean $\bar{X}_j = \frac{1}{n}\sum_{i=1}^{n} X_{ij}$ and median
+    \item \textbf{Dispersion:} Sample variance $s_j^2 = \frac{1}{n-1}\sum_{i=1}^{n}(X_{ij} - \bar{X}_j)^2$, interquartile range
+    \item \textbf{Shape:} Skewness $\gamma_1 = m_3 / m_2^{3/2}$ and kurtosis $\gamma_2 = m_4 / m_2^2 - 3$, where $m_k$ denotes the $k$-th central moment
+    \item \textbf{Normality testing:} Shapiro--Wilk test with null hypothesis $H_0$: the sample comes from a normal distribution
+\end{itemize}
+
+\subsubsection{Correlation Analysis}
+
+Compute the Pearson correlation matrix $\mathbf{R} \in \R^{d \times d}$:
+\begin{equation}\label{eq:pearson}
+    R_{jk} = \frac{\sum_{i=1}^{n}(X_{ij} - \bar{X}_j)(X_{ik} - \bar{X}_k)}{\sqrt{\sum_{i=1}^{n}(X_{ij} - \bar{X}_j)^2 \cdot \sum_{i=1}^{n}(X_{ik} - \bar{X}_k)^2}}
+\end{equation}
+
+For non-linear dependencies, compute \textbf{Mutual Information} using the Kraskov--St\"ogbauer--Grassberger (KSG) $k$-nearest neighbor estimator:
+\begin{equation}\label{eq:ksg}
+    \hat{I}_{\mathrm{KSG}}(X; Y) = \psi(k) - \bigl\langle\psi(n_x) + \psi(n_y)\bigr\rangle + \psi(N)
+\end{equation}
+where $\psi$ is the digamma function, $k$ is the number of nearest neighbors, and $n_x$, $n_y$ are the counts of points within the $\epsilon$-ball in each marginal space.
+
+\subsubsection{Physics-Informed Feature Engineering}
+
+Derive physically meaningful features from raw sensor data:
+
+\begin{enumerate}
+    \item \textbf{Temperature differential:} $\Delta T_i = T_{\mathrm{process},i} - T_{\mathrm{air},i}$ \hfill (heat dissipation indicator)
+    \item \textbf{Mechanical power:} $P_i = \dfrac{2\pi \cdot \mathrm{RPM}_i \cdot \tau_i}{60}$ \hfill (watts)
+    \item \textbf{Power-wear interaction:} $\mathrm{PWI}_i = P_i \cdot w_i$ \hfill (accelerated degradation under load)
+    \item \textbf{Torque-speed ratio:} $\mathrm{TSR}_i = \dfrac{\tau_i}{\mathrm{RPM}_i}$ \hfill (load intensity metric)
+    \item \textbf{Thermal stress index:} $\mathrm{TSI}_i = \Delta T_i \cdot \mathrm{RPM}_i$ \hfill (convective heat removal proxy)
+\end{enumerate}
+
+% ── Stage 2 ──────────────────────────────────────────────────────────
+\subsection{Stage 2: Wiener Process Degradation Model}
+
+\subsubsection{Health Index Construction}
+
+Since the AI4I dataset provides discrete failure labels rather than continuous degradation signals, we construct a \textbf{Health Index (HI)} using a weighted combination of normalized sensor features.
+
+Let $\mathbf{z}_i = (z_{i1}, \ldots, z_{id'})^\top$ be the vector of standardized physics-informed features for observation~$i$. The Health Index is:
+\begin{equation}\label{eq:hi}
+    \HI_i = \mathbf{w}^\top \mathbf{z}_i = \sum_{j=1}^{d'} w_j\, z_{ij}
+\end{equation}
+
+The weight vector $\mathbf{w}$ is determined by two complementary methods:
+
+\paragraph{Method A --- PCA-based.} The first principal component of $\mathbf{Z}$ (the standardized feature matrix) serves as HI. The weights are the loadings of PC1:
+\begin{equation}
+    \mathbf{w}_{\mathrm{PCA}} = \text{eigenvector of } \mathbf{Z}^\top\!\mathbf{Z} \text{ corresponding to the largest eigenvalue}
+\end{equation}
+
+\paragraph{Method B --- Supervised.} Weights are proportional to mutual information with the failure target:
+\begin{equation}
+    w_j \propto \hat{I}(Z_j;\, Y_{\mathrm{failure}}), \qquad \text{normalized such that } \|\mathbf{w}\|_1 = 1
+\end{equation}
+
+\subsubsection{Wiener Process Formulation}
+
+Model the Health Index trajectory of each unit as a Wiener process with covariate-dependent parameters:
+\begin{equation}\label{eq:wiener}
+    \HI(t) = \HI(0) + \mu(\mathbf{x}_t)\cdot t + \sigma(\mathbf{x}_t)\cdot B(t)
+\end{equation}
+where:
+\begin{itemize}[leftmargin=*]
+    \item $\HI(0)$ is the initial health state,
+    \item $\mu(\mathbf{x}_t)$ is the \textbf{drift rate} (average degradation speed):
+    \begin{equation}\label{eq:drift}
+        \mu(\mathbf{x}_t) = \mu_0 + \boldsymbol{\beta}_\mu^\top \mathbf{x}_t
+    \end{equation}
+    where $\mu_0$ is the baseline drift and $\boldsymbol{\beta}_\mu$ captures how operating conditions accelerate or decelerate degradation.
+    
+    \item $\sigma(\mathbf{x}_t)$ is the \textbf{diffusion coefficient} (degradation variability):
+    \begin{equation}\label{eq:diffusion}
+        \sigma(\mathbf{x}_t) = \sigma_0 \exp\!\left(\boldsymbol{\beta}_\sigma^\top \mathbf{x}_t\right)
+    \end{equation}
+    using an exponential link to ensure $\sigma > 0$.
+    
+    \item $B(t)$ is standard Brownian motion.
+\end{itemize}
+
+\subsubsection{Parameter Estimation via Maximum Likelihood}
+
+Given $n$ units with observed HI trajectories $\{\HI_i(t_1), \ldots, \HI_i(t_{m_i})\}$, the increments $\Delta\HI_{ij} = \HI_i(t_j) - \HI_i(t_{j-1})$ are independently normally distributed:
+\begin{equation}
+    \Delta\HI_{ij} \sim \mathcal{N}\!\left(\mu(\mathbf{x}_{ij})\cdot\Delta t_j,\;\; \sigma^2(\mathbf{x}_{ij})\cdot\Delta t_j\right)
+\end{equation}
+
+The log-likelihood is:
+\begin{equation}\label{eq:wiener-ll}
+    \ell(\boldsymbol{\theta}) = -\frac{1}{2}\sum_{i=1}^{n}\sum_{j=1}^{m_i}\left[\log\!\bigl(2\pi\sigma^2(\mathbf{x}_{ij})\,\Delta t_j\bigr) + \frac{\bigl(\Delta\HI_{ij} - \mu(\mathbf{x}_{ij})\,\Delta t_j\bigr)^2}{\sigma^2(\mathbf{x}_{ij})\,\Delta t_j}\right]
+\end{equation}
+where $\boldsymbol{\theta} = (\mu_0, \boldsymbol{\beta}_\mu, \sigma_0, \boldsymbol{\beta}_\sigma)$. Parameters are estimated by maximizing $\ell(\boldsymbol{\theta})$ using the \textbf{L-BFGS-B} algorithm with box constraints to ensure physical validity ($\sigma_0 > 0$).
+
+\subsubsection{Remaining Useful Life via First Hitting Time}
+
+The RUL at current time $t_0$ is the First Hitting Time $T_f$ of the Wiener process to the failure threshold~$\ell$:
+\begin{equation}
+    T_f = \inf\{t > t_0 : \HI(t) \geq \ell\}
+\end{equation}
+
+Under the covariate-informed model, the FHT distribution is approximated by the \textbf{Inverse Gaussian distribution}:
+\begin{equation}\label{eq:fht-ig}
+    f_{T_f}(\tau) = \frac{d}{\sqrt{2\pi\sigma^2\tau^3}}\,\exp\!\left[-\frac{(d - \mu\tau)^2}{2\sigma^2\tau}\right]
+\end{equation}
+where $d = \ell - \HI(t_0)$ is the remaining degradation margin, $\mu = \mu(\mathbf{x}_{t_0})$, and $\sigma = \sigma(\mathbf{x}_{t_0})$.
+
+\begin{align}
+    \textbf{Expected RUL:}\qquad & \E[T_f] = \frac{d}{\mu} \label{eq:erul}\\[6pt]
+    \textbf{Variance of RUL:}\qquad & \Var(T_f) = \frac{d\cdot\sigma^2}{\mu^3} \label{eq:vrul}
+\end{align}
+
+% ── Stage 3 ──────────────────────────────────────────────────────────
+\subsection{Stage 3: Weibull Survival Analysis}
+
+\subsubsection{Weibull Distribution for Failure Times}
+
+Model the time-to-failure as a Weibull random variable with survival function:
+\begin{equation}\label{eq:weibull-surv}
+    S(t;\,\beta,\eta) = \exp\!\left[-\left(\frac{t}{\eta}\right)^{\!\beta}\right]
+\end{equation}
+
+The \textbf{hazard function} (instantaneous failure rate at time $t$, given survival to $t$) is:
+\begin{equation}\label{eq:weibull-hazard}
+    h(t;\,\beta,\eta) = \frac{\beta}{\eta}\left(\frac{t}{\eta}\right)^{\!\beta-1}
+\end{equation}
+
+For $\beta > 1$, the hazard is \textbf{monotonically increasing}, consistent with wear-out degradation in industrial equipment.
+
+\subsubsection{Degradation-Informed Weibull Regression}
+
+We extend the standard Weibull model by incorporating the degradation state (Health Index) as a covariate. This is the key bridge between the stochastic degradation model (Stage~2) and survival analysis:
+\begin{equation}\label{eq:weibull-reg}
+    \eta_i = \exp\!\left(\gamma_0 + \gamma_1 \cdot \HI_i(t_0) + \boldsymbol{\gamma}_2^\top \mathbf{x}_i\right)
+\end{equation}
+where the scale parameter $\eta_i$ varies across units based on their current degradation state $\HI_i(t_0)$ and operating conditions $\mathbf{x}_i$. The shape parameter $\beta$ is estimated globally.
+
+\subsubsection{Maximum Likelihood Estimation}
+
+For a dataset with $n$ observations where unit~$i$ either fails at time $t_i$ (event indicator $\delta_i = 1$) or is right-censored ($\delta_i = 0$), the Weibull log-likelihood is:
+\begin{equation}\label{eq:weibull-ll}
+    \ell(\beta, \gamma_0, \gamma_1, \boldsymbol{\gamma}_2) = \sum_{i=1}^{n}\left[\delta_i\!\left(\log\beta - \beta\log\eta_i + (\beta-1)\log t_i\right) - \left(\frac{t_i}{\eta_i}\right)^{\!\beta}\right]
+\end{equation}
+
+Parameters are estimated via Newton--Raphson optimization. Standard errors are obtained from the observed Fisher information matrix:
+\begin{equation}\label{eq:fisher}
+    \mathcal{I}(\hat{\boldsymbol{\theta}}) = -\frac{\partial^2 \ell}{\partial\boldsymbol{\theta}\,\partial\boldsymbol{\theta}^\top}\bigg|_{\boldsymbol{\theta}=\hat{\boldsymbol{\theta}}}
+\end{equation}
+
+\subsubsection{Reliability Function and Maintenance Scheduling}
+
+The \textbf{reliability} of unit~$i$ at future time $t + \Delta t$, given current age $t$ and degradation state, is:
+\begin{equation}\label{eq:reliability}
+    R_i(t + \Delta t \mid t) = \frac{S_i(t + \Delta t)}{S_i(t)} = \exp\!\left[-\left(\frac{t + \Delta t}{\hat{\eta}_i}\right)^{\!\hat{\beta}} + \left(\frac{t}{\hat{\eta}_i}\right)^{\!\hat{\beta}}\right]
+\end{equation}
+
+Maintenance is recommended when $R_i$ drops below a policy threshold $R_{\min}$ (e.g., 0.80).
+
+% ── Stage 4 ──────────────────────────────────────────────────────────
+\subsection{Stage 4: Machine Learning Classification}
+
+\subsubsection{Feature Space Augmentation}
+
+The ML models receive an augmented feature vector that includes both the original sensor features and the mathematically derived quantities from Stages~2--3:
+\begin{equation}\label{eq:augmented}
+    \tilde{\mathbf{x}}_i = \bigl[\underbrace{T_{\mathrm{air}},\, T_{\mathrm{proc}},\, \mathrm{RPM},\, \tau,\, w}_{\text{raw sensors}},\;\; \underbrace{\Delta T,\, P,\, \mathrm{PWI},\, \mathrm{TSR},\, \mathrm{TSI}}_{\text{physics features}},\;\; \underbrace{\HI,\, \hat{\mu},\, \hat{\sigma}}_{\text{degradation}},\;\; \underbrace{\hat{S}(t),\, \hat{h}(t),\, \hat{R}}_{\text{survival}}\bigr]
+\end{equation}
+
+This feature augmentation is a core novelty: the ML model does not operate on raw sensor data alone, but on a \textit{mathematically enriched} representation.
+
+\subsubsection{Gradient Boosted Decision Trees (XGBoost)}
+
+We use XGBoost \citep{chen2016} as the primary classifier. For the binary classification task (failure vs.\ no failure), the model minimizes the regularized logistic loss:
+\begin{equation}\label{eq:xgboost-loss}
+    \mathcal{L}(\boldsymbol{\Theta}) = \sum_{i=1}^{n}\left[y_i\log(1 + e^{-\hat{y}_i}) + (1-y_i)\log(1 + e^{\hat{y}_i})\right] + \sum_{k=1}^{K}\left[\gamma T_k + \frac{1}{2}\lambda\sum_{j=1}^{T_k}w_{kj}^2\right]
+\end{equation}
+where $\hat{y}_i = \sum_{k=1}^{K}f_k(\tilde{\mathbf{x}}_i)$ is the sum of predictions from $K$ trees, $T_k$ is the number of leaves in tree~$k$, $w_{kj}$ are leaf weights, and $\gamma$, $\lambda$ are regularization hyperparameters.
+
+Trees are grown greedily by maximizing the \textbf{gain} at each split:
+\begin{equation}\label{eq:gain}
+    \mathrm{Gain} = \frac{1}{2}\left[\frac{G_L^2}{H_L + \lambda} + \frac{G_R^2}{H_R + \lambda} - \frac{(G_L + G_R)^2}{H_L + H_R + \lambda}\right] - \gamma
+\end{equation}
+where $G = \sum_i \partial_{\hat{y}_i}\ell(y_i, \hat{y}_i)$ and $H = \sum_i \partial^2_{\hat{y}_i}\ell(y_i, \hat{y}_i)$ are the sums of first and second derivatives over instances in the left~($L$) and right~($R$) child nodes.
+
+\subsubsection{Cost-Sensitive Learning for Class Imbalance}
+
+Equipment failures are rare events (approximately 3.4\% of observations). A naive classifier that always predicts ``no failure'' achieves 96.6\% accuracy but is operationally useless. We address class imbalance through:
+
+\paragraph{Method 1 --- Scale Position Weight.} Set the \texttt{scale\_pos\_weight} parameter:
+\begin{equation}
+    \mathrm{scale\_pos\_weight} = \frac{n^-}{n^+}
+\end{equation}
+where $n^-$ and $n^+$ are the counts of negative and positive samples.
+
+\paragraph{Method 2 --- Cost-Sensitive Loss.} Replace the standard loss with a cost-weighted loss:
+\begin{equation}\label{eq:cost-loss}
+    \ell_{\mathrm{cost}}(y_i, \hat{y}_i) = c_{FN}\cdot y_i\cdot\log(1 + e^{-\hat{y}_i}) + c_{FP}\cdot(1-y_i)\cdot\log(1 + e^{\hat{y}_i})
+\end{equation}
+where $c_{FN} \gg c_{FP}$ reflects the asymmetric costs: a missed failure (false negative) incurs catastrophic costs compared to a false alarm (false positive).
+
+\subsubsection{Multi-Mode Failure Classification}
+
+Beyond binary prediction, we train a multi-class model for the 5 failure modes (TWF, HDF, PWF, OSF, RNF) using the \textbf{one-vs-rest} strategy with mode-specific cost weights calibrated to each failure mode's severity and frequency.
+
+\subsubsection{Random Forest Baseline}
+
+A Random Forest classifier with $B$ bagged trees serves as a baseline:
+\begin{equation}
+    \hat{y}_i = \mathrm{majority\_vote}\!\bigl(h_1(\tilde{\mathbf{x}}_i),\, h_2(\tilde{\mathbf{x}}_i),\, \ldots,\, h_B(\tilde{\mathbf{x}}_i)\bigr)
+\end{equation}
+
+The \textbf{out-of-bag (OOB) error} provides an unbiased estimate of generalization performance:
+\begin{equation}
+    \hat{\epsilon}_{\mathrm{OOB}} = \frac{1}{n}\sum_{i=1}^{n}\mathbb{I}\!\left[\hat{y}_i^{\mathrm{OOB}} \neq y_i\right]
+\end{equation}
+
+% ── Stage 5 ──────────────────────────────────────────────────────────
+\subsection{Stage 5: Conformal Prediction for Uncertainty Quantification}
+
+\subsubsection{Split Conformal Prediction}
+
+Partition the data into training set $\mathcal{D}_{\mathrm{train}}$, calibration set $\mathcal{D}_{\mathrm{cal}}$, and test set $\mathcal{D}_{\mathrm{test}}$.
+
+\begin{description}[leftmargin=1.5em, labelindent=0em]
+    \item[Step 1.] Train the ML model $f\colon \mathcal{X} \to \R$ on $\mathcal{D}_{\mathrm{train}}$.
+    
+    \item[Step 2.] Compute \textbf{nonconformity scores} on $\mathcal{D}_{\mathrm{cal}}$:
+    \begin{equation}
+        s_i = \bigl|y_i - \sigma(f(\tilde{\mathbf{x}}_i))\bigr|, \quad i \in \mathcal{D}_{\mathrm{cal}}
+    \end{equation}
+    where $\sigma(\cdot)$ is the sigmoid function.
+    
+    \item[Step 3.] For significance level $\alpha \in (0,1)$, compute the quantile:
+    \begin{equation}
+        \hat{q}_{1-\alpha} = \text{the } \bigl\lceil(1-\alpha)(|\mathcal{D}_{\mathrm{cal}}|+1)\bigr\rceil\text{-th smallest value of } \{s_1, \ldots, s_{|\mathcal{D}_{\mathrm{cal}}|}\}
+    \end{equation}
+    
+    \item[Step 4.] For a new observation $\tilde{\mathbf{x}}_{\mathrm{new}}$, the \textbf{prediction set} is:
+    \begin{equation}\label{eq:conformal-set}
+        C(\tilde{\mathbf{x}}_{\mathrm{new}}) = \bigl\{y \in \{0,1\} : |y - \sigma(f(\tilde{\mathbf{x}}_{\mathrm{new}}))| \leq \hat{q}_{1-\alpha}\bigr\}
+    \end{equation}
+\end{description}
+
+\paragraph{Coverage Guarantee.} For any data distribution $P$ and any scoring function~$f$:
+\begin{equation}
+    \Prob\!\left(Y_{\mathrm{new}} \in C(\tilde{\mathbf{x}}_{\mathrm{new}})\right) \geq 1 - \alpha
+\end{equation}
+This guarantee holds \textbf{regardless of model correctness}---even if $f$ is a poor predictor.
+
+\subsubsection{Interpretation for Maintenance Operations}
+
+\begin{itemize}[leftmargin=*]
+    \item $C(\tilde{\mathbf{x}}) = \{1\}$: The machine \textbf{will fail} with confidence $\geq 1-\alpha$. $\to$ Schedule immediate maintenance.
+    \item $C(\tilde{\mathbf{x}}) = \{0,1\}$: The model is \textbf{uncertain}. $\to$ Flag for enhanced monitoring.
+    \item $C(\tilde{\mathbf{x}}) = \{0\}$: The machine \textbf{will not fail} with confidence $\geq 1-\alpha$. $\to$ Continue normal operation.
+\end{itemize}
+
+\subsubsection{Adaptive Conformal Inference (ACI) for Non-Stationarity}
+
+Standard conformal prediction assumes exchangeability, which may be violated as equipment ages. We implement ACI \citep{gibbs2021}, which dynamically updates the quantile threshold:
+\begin{equation}\label{eq:aci}
+    \hat{q}_{t+1} = \hat{q}_t + \gamma\cdot\bigl(\alpha - \mathbb{I}(y_t \notin C(\tilde{\mathbf{x}}_t))\bigr)
+\end{equation}
+where $\gamma > 0$ is a learning rate. If empirical coverage drops below $1-\alpha$, the threshold increases to widen prediction sets; if coverage exceeds $1-\alpha$, it decreases to tighten them.
+
+% ── Explainability ───────────────────────────────────────────────────
+\subsection{Explainability via SHAP}
+
+\subsubsection{SHAP Values for Feature Attribution}
+
+For each prediction $\hat{y}_i$, compute SHAP values $\phi_j(\tilde{\mathbf{x}}_i)$ for each feature~$j$ \citep{lundberg2017}:
+\begin{equation}\label{eq:shap-decomp}
+    \hat{y}_i = \phi_0 + \sum_{j=1}^{p}\phi_j(\tilde{\mathbf{x}}_i)
+\end{equation}
+where $\phi_0$ is the base value and $\phi_j$ represents the marginal contribution of feature~$j$ based on the Shapley value:
+\begin{equation}\label{eq:shapley}
+    \phi_j = \sum_{S \subseteq \{1,\ldots,p\}\setminus\{j\}} \frac{|S|!\,(p-|S|-1)!}{p!}\bigl[f(S\cup\{j\}) - f(S)\bigr]
+\end{equation}
+
+For tree-based models, TreeSHAP computes exact Shapley values in $O(TLD^2)$ time, where $T$ is the number of trees, $L$ is the maximum number of leaves, and $D$ is the maximum tree depth.
+
+\subsubsection{Global and Local Interpretability}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Global importance:} Rank features by mean absolute SHAP value $\frac{1}{n}\sum_i|\phi_j(\tilde{\mathbf{x}}_i)|$ to identify which degradation indicators are most influential.
+    \item \textbf{Local explanations:} For individual failure predictions, SHAP force plots reveal \textit{why} a specific machine is flagged---e.g., ``high power-wear interaction (PWI) increased failure probability by 0.23.''
+\end{itemize}
+
+% ── Calibration ──────────────────────────────────────────────────────
+\subsection{Probability Calibration}
+
+Raw model outputs may be poorly calibrated. We apply two calibration methods:
+
+\paragraph{Platt Scaling.} Learn parameters $a, b$ by maximum likelihood on the validation set:
+\begin{equation}
+    P(Y=1 \mid f(\tilde{\mathbf{x}})) = \sigma(a\cdot f(\tilde{\mathbf{x}}) + b)
+\end{equation}
+
+\paragraph{Isotonic Regression.} Find a monotonic function $g$ minimizing:
+\begin{equation}
+    \min_{g \in \mathcal{M}} \sum_{i=1}^{n}\bigl(y_i - g(f(\tilde{\mathbf{x}}_i))\bigr)^2
+\end{equation}
+where $\mathcal{M}$ is the space of monotone non-decreasing functions, solved via the Pool Adjacent Violators Algorithm (PAVA) in $O(n\log n)$ time.
+
+\paragraph{Evaluation.} Expected Calibration Error (ECE):
+\begin{equation}\label{eq:ece}
+    \mathrm{ECE} = \sum_{m=1}^{M}\frac{|B_m|}{n}\bigl|\mathrm{avg}(y_i \in B_m) - \mathrm{avg}(\hat{p}_i \in B_m)\bigr|
+\end{equation}
+where $B_m$ are $M$ equally-spaced probability bins.
+
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 5 — EVALUATION FRAMEWORK
+% ══════════════════════════════════════════════════════════════════════
+\section{Evaluation Framework}
+
+\subsection{Classification Metrics}
+
+For the binary failure prediction task:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Precision:} $\mathrm{Prec} = \dfrac{TP}{TP + FP}$\quad---\quad of all failure alerts, how many are true failures?
+    \item \textbf{Recall (Sensitivity):} $\mathrm{Rec} = \dfrac{TP}{TP + FN}$\quad---\quad of all actual failures, how many did we detect?
+    \item \textbf{F1-Score:} $F_1 = 2\cdot\dfrac{\mathrm{Prec}\cdot\mathrm{Rec}}{\mathrm{Prec}+\mathrm{Rec}}$\quad---\quad harmonic mean balancing precision and recall
+    \item \textbf{AUC-ROC:} Area under the Receiver Operating Characteristic curve
+    \item \textbf{PR-AUC:} Area under the Precision--Recall curve, more informative under class imbalance
+\end{itemize}
+
+\subsection{Degradation Model Evaluation}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Mean Absolute Error (MAE) of RUL:}\quad $\mathrm{MAE}_{\RUL} = \frac{1}{n}\sum_i|\RUL_{\mathrm{true},i} - \widehat{\RUL}_i|$
+    \item \textbf{Log-likelihood} of the fitted Wiener process model
+    \item \textbf{Kolmogorov--Smirnov test} comparing the fitted Inverse Gaussian FHT distribution to empirical failure times
+\end{itemize}
+
+\subsection{Survival Analysis Evaluation}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Concordance Index (C-index):} Measures the model's ability to correctly rank pairs of units by failure time:
+    \begin{equation}
+        C = \frac{\sum_{i,j}\mathbb{I}(\hat{S}_i(t) > \hat{S}_j(t))\,\mathbb{I}(T_i > T_j)\,\delta_j}{\sum_{i,j}\mathbb{I}(T_i > T_j)\,\delta_j}
+    \end{equation}
+    \item \textbf{Brier Score:}\quad $\mathrm{BS}(t) = \frac{1}{n}\sum_i\bigl(\hat{S}_i(t) - \mathbb{I}(T_i > t)\bigr)^2$
+\end{itemize}
+
+\subsection{Conformal Prediction Evaluation}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Empirical coverage:}\quad $\hat{C} = \frac{1}{n_{\mathrm{test}}}\sum_{i=1}^{n_{\mathrm{test}}}\mathbb{I}(y_i \in C(\tilde{\mathbf{x}}_i))$\quad---\quad should satisfy $\hat{C} \geq 1-\alpha$
+    \item \textbf{Average prediction set size:}\quad $\mathrm{APSS} = \frac{1}{n_{\mathrm{test}}}\sum_{i=1}^{n_{\mathrm{test}}}|C(\tilde{\mathbf{x}}_i)|$\quad---\quad smaller is better
+    \item \textbf{Conditional coverage} stratified by failure mode
+\end{itemize}
+
+\subsection{Baselines for Comparison}
+
+\begin{table}[H]
+    \centering
+    \caption{Models used for comparative evaluation.}
+    \label{tab:baselines}
+    \begin{tabularx}{\textwidth}{l X}
+        \toprule
+        \textbf{Model} & \textbf{Description} \\
+        \midrule
+        Logistic Regression & Linear baseline on raw sensor features \\
+        Random Forest (raw) & RF on raw features without physics/degradation augmentation \\
+        XGBoost (raw) & XGBoost on raw features without augmentation \\
+        XGBoost + SMOTE & Standard oversampling approach for class imbalance \\
+        \textbf{DICSF (Ours)} & \textbf{Full framework: Wiener + Weibull + XGBoost + Conformal} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+The comparison isolates the contribution of each mathematical component.
+
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 6 — IMPLEMENTATION PLAN
+% ══════════════════════════════════════════════════════════════════════
+\section{Implementation Plan}
+
+\subsection{Tools and Technologies}
+
+\begin{table}[H]
+    \centering
+    \caption{Software stack for the DICSF implementation.}
+    \label{tab:tools}
+    \begin{tabularx}{\textwidth}{l X}
+        \toprule
+        \textbf{Component} & \textbf{Tool} \\
+        \midrule
+        Programming Language & Python 3.10+ \\
+        Data Processing & NumPy, Pandas \\
+        Statistical Modeling & SciPy (MLE optimization, Wiener process), Lifelines (survival analysis) \\
+        Machine Learning & Scikit-learn, XGBoost \\
+        Conformal Prediction & MAPIE or custom implementation \\
+        Explainability & SHAP \\
+        Visualization & Matplotlib, Seaborn, Plotly \\
+        Notebook Environment & Jupyter Notebook \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Project Timeline}
+
+\begin{table}[H]
+    \centering
+    \caption{Phased project timeline.}
+    \label{tab:timeline}
+    \begin{tabularx}{\textwidth}{l l X}
+        \toprule
+        \textbf{Phase} & \textbf{Duration} & \textbf{Activities} \\
+        \midrule
+        Phase 1: Data Exploration & Weeks 1--2 & EDA, statistical testing, correlation analysis, feature engineering \\
+        Phase 2: Degradation Modeling & Weeks 3--4 & HI construction, Wiener process fitting, FHT distribution \\
+        Phase 3: Survival Analysis & Weeks 5--6 & Weibull MLE, degradation-informed regression, reliability curves \\
+        Phase 4: ML Development & Weeks 7--9 & Model training, cost-sensitive learning, hyperparameter tuning, SHAP \\
+        Phase 5: Conformal Prediction & Weeks 10--11 & Split CP implementation, ACI, coverage evaluation \\
+        Phase 6: Integration \& Report & Weeks 12--14 & Framework integration, baseline comparison, final report \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+% ══════════════════════════════════════════════════════════════════════
+% SECTION 7 — EXPECTED OUTCOMES
+% ══════════════════════════════════════════════════════════════════════
+\section{Expected Outcomes}
+
+\begin{enumerate}
+    \item \textbf{A mathematically rigorous predictive maintenance framework} that integrates stochastic degradation modeling, survival analysis, machine learning, and conformal prediction.
+    \item \textbf{Quantified improvement} over baseline models, demonstrating that physics-informed feature augmentation and degradation-informed survival features improve classification performance (targeting $F_1 > 0.85$, AUC $> 0.95$).
+    \item \textbf{Distribution-free uncertainty quantification} via conformal prediction sets with guaranteed 90\% coverage.
+    \item \textbf{Interpretable failure analysis} through SHAP values, identifying which degradation pathways (thermal, mechanical, wear) drive each failure mode.
+    \item \textbf{A publishable methodology}---the DICSF framework addresses a documented gap in the literature.
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════
+% REFERENCES
+% ══════════════════════════════════════════════════════════════════════
+\newpage
+\bibliographystyle{plainnat}
+
+\begin{thebibliography}{10}
+
+\bibitem[Weibull(1951)]{weibull1951}
+W.~Weibull.
+\newblock A statistical distribution function of wide applicability.
+\newblock \textit{Journal of Applied Mechanics}, 18(3):293--297, 1951.
+
+\bibitem[Vovk et~al.(2005)]{vovk2005}
+V.~Vovk, A.~Gammerman, and G.~Shafer.
+\newblock \textit{Algorithmic Learning in a Random World}.
+\newblock Springer, 2005.
+
+\bibitem[Carvalho et~al.(2019)]{carvalho2019}
+T.~P. Carvalho, F.~A.~A.~M.~N. Soares, R.~Vita, R.~da~P. Francisco, J.~P. Basto, and S.~G.~S. Alcal\'{a}.
+\newblock A systematic literature review of machine learning methods applied to predictive maintenance.
+\newblock \textit{Computers \& Industrial Engineering}, 137:106024, 2019.
+
+\bibitem[Si et~al.(2011)]{si2011}
+X.~S. Si, W.~Wang, C.~H. Hu, and D.~H. Zhou.
+\newblock Remaining useful life estimation---a review on the statistical data driven approaches.
+\newblock \textit{European Journal of Operational Research}, 213(1):1--14, 2011.
+
+\bibitem[Lundberg and Lee(2017)]{lundberg2017}
+S.~M. Lundberg and S.~I. Lee.
+\newblock A unified approach to interpreting model predictions.
+\newblock In \textit{Advances in Neural Information Processing Systems}, volume~30, 2017.
+
+\bibitem[Chen and Guestrin(2016)]{chen2016}
+T.~Chen and C.~Guestrin.
+\newblock {XGBoost}: A scalable tree boosting system.
+\newblock In \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, pages 785--794, 2016.
+
+\bibitem[Ye and Xie(2015)]{ye2015}
+Z.~S. Ye and M.~Xie.
+\newblock Stochastic modelling and analysis of degradation for highly reliable products.
+\newblock \textit{Applied Stochastic Models in Business and Industry}, 31(1):16--36, 2015.
+
+\bibitem[Angelopoulos and Bates(2023)]{angelopoulos2023}
+A.~N. Angelopoulos and S.~Bates.
+\newblock Conformal prediction: A gentle introduction.
+\newblock \textit{Foundations and Trends in Machine Learning}, 16(4):494--591, 2023.
+
+\bibitem[Gibbs and Cand\`{e}s(2021)]{gibbs2021}
+I.~Gibbs and E.~Cand\`{e}s.
+\newblock Adaptive conformal inference under distribution shift.
+\newblock In \textit{Advances in Neural Information Processing Systems}, volume~34, 2021.
+
+\bibitem[Matzka(2020)]{matzka2020}
+S.~Matzka.
+\newblock {AI4I} 2020 predictive maintenance dataset.
+\newblock \textit{UCI Machine Learning Repository}, 2020.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,10 @@
+{
+  "quantile": 0.2688281047195196,
+  "alpha": 0.1,
+  "n_calibration": 2000,
+  "coverage": 0.971,
+  "avg_set_size": 1.0,
+  "aci_gamma": 0.005,
+  "aci_final_quantile": 1.4599999999998907,
+  "aci_final_coverage": 0.996
+}
